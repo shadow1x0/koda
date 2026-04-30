@@ -1,6 +1,5 @@
 # Koda
 
-[![npm version](https://img.shields.io/npm/v/koda.svg)](https://www.npmjs.com/package/koda)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
 
@@ -8,19 +7,26 @@
 
 Koda transforms your codebase into structured, evidence-based context that LLMs can actually understand—without hallucinations or noise. Perfect for ChatGPT, Claude, Copilot, and any AI assistant.
 
-> **"I just joined a new team with 200+ files. Koda gave me the full picture in 3 seconds."**
-
 ---
 
 ## Installation
 
+### From Source (Current)
+
 ```bash
-npm install -g koda
+git clone https://github.com/shadow1x0/koda.git
+cd koda
+npm install
+npm run build
+npm link  # Makes 'koda' command available globally
 ```
 
-Or use without installing:
+### Usage
+
 ```bash
-npx koda explain .
+koda explain .
+koda ask . "how does it work?"
+koda context . --max-tokens 4000
 ```
 
 ---
@@ -48,18 +54,6 @@ koda context . --max-tokens 8000
 | `explain` | `--max-files <n>` | Max files to include (default: 7) |
 | `ask` | `--max-files <n>` | Max files to include (default: 10) |
 | `context` | `--max-tokens <n>` | Token budget (default: 4000) |
-
-### VS Code Extension (Auto-Context)
-
-```bash
-cd vscode-extension
-npm install
-npm run compile
-```
-
-Then in VS Code: `Extensions: Install from VSIX` → Select the `.vsix` file.
-
-The extension automatically updates `.koda/context.md` on every file save.
 
 ---
 
@@ -191,7 +185,7 @@ src/
 
 - [x] **Phase 1**: Project scanner, file filtering, tree generation
 - [x] **Phase 2**: Evidence-based reasoning engine
-- [x] **Phase 3**: VS Code auto-context extension
+- [ ] **Phase 3**: VS Code auto-context extension
 - [x] **Phase 4**: Critical bug fixes (compression, dependencies, detection)
 - [x] **Phase 5**: Content extraction (file headers, exports, signatures)
 - [x] **Phase 6**: Smart modes (`explain`, `ask`, `context`)
