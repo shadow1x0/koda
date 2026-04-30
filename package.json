@@ -9,7 +9,9 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "start": "node dist/cli.js"
+    "start": "node dist/cli.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "keywords": ["cli", "scanner", "ai", "context"],
   "author": "",
@@ -21,6 +23,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
   }
 }

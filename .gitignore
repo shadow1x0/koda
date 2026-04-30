@@ -35,3 +35,6 @@ temp/
 # Archives
 *.zip
 *.tar.gz
+
+# Koda cache
+.koda/
