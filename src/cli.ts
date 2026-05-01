@@ -39,26 +39,50 @@ program
       // Build dependencies
       const dependencyMap = buildDependencyMap(scanResult.files);
       const reverseDependencyMap = buildReverseDependencyMap(scanResult.files);
-      const entryPatterns = [/^cli\./, /^index\./, /^main\./, /^server\./];
       
-      // Get unique entry points by relative path
-      const entryPoints: string[] = [];
+      // Get entry points with priority-based selection
+      const entryPoints: { path: string; priority: number }[] = [];
       const seen = new Set<string>();
       for (const f of scanResult.files) {
-        if (entryPatterns.some(p => p.test(f.name))) {
-          const relPath = path.relative(scanResult.rootPath, f.path);
-          if (!seen.has(relPath)) {
-            seen.add(relPath);
-            entryPoints.push(relPath);
-          }
+        const relPath = path.relative(scanResult.rootPath, f.path);
+        if (seen.has(relPath)) continue;
+        
+        let priority = 0;
+        if (f.name === 'cli.ts' || f.name === 'cli.js') {
+          priority = 100; // CLI entry point
+        } else if (f.name === 'index.ts' || f.name === 'index.js') {
+          const depth = relPath.split('/').length;
+          if (depth === 1) priority = 90; // Root index
+          else if (relPath.includes('context')) priority = 70; // Core context
+          else if (relPath.includes('cache') || relPath.includes('modes')) priority = 50; // Supporting
+          else priority = 60;
+        } else if (/^main\./.test(f.name) || /^server\./.test(f.name) || /^app\./.test(f.name)) {
+          priority = 80;
+        }
+        
+        if (priority > 0) {
+          seen.add(relPath);
+          entryPoints.push({ path: relPath, priority });
         }
       }
+      entryPoints.sort((a, b) => b.priority - a.priority);
+      const entryPointPaths = entryPoints.map(e => e.path);
       
       // Rank files
-      const rankedFiles = rankFiles(scanResult.files, dependencyMap, reverseDependencyMap, entryPoints);
+      const rankedFiles = rankFiles(scanResult.files, dependencyMap, reverseDependencyMap, entryPointPaths);
       
-      // Select files for explain mode
+      // Select files for explain mode and sort by priority
       const selectedFiles = explainMode.fileSelector(scanResult.files, rankedFiles);
+      
+      // Sort selected files by entry point priority
+      const priorityMap = new Map(entryPoints.map(e => [e.path, e.priority]));
+      selectedFiles.sort((a, b) => {
+        const aRel = path.relative(scanResult.rootPath, a.path);
+        const bRel = path.relative(scanResult.rootPath, b.path);
+        const aPriority = priorityMap.get(aRel) || 0;
+        const bPriority = priorityMap.get(bRel) || 0;
+        return bPriority - aPriority;
+      });
       
       // Extract content for selected files
       const contents = new Map<string, import('./context/extractor.js').FileContent>();
@@ -88,7 +112,7 @@ program
       else if (hasGoMod && goFiles > 0) projectType = 'Go';
       else if (hasPyProject && pyFiles > 0) projectType = 'Python';
       
-      const output = explainMode.formatter(selectedFiles, contents, projectType, entryPoints, scanResult.rootPath);
+      const output = explainMode.formatter(selectedFiles, contents, projectType, entryPointPaths, scanResult.rootPath);
       console.log(output);
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : String(error));
@@ -117,22 +141,36 @@ program
       // Build dependencies and rank
       const dependencyMap = buildDependencyMap(scanResult.files);
       const reverseDependencyMap = buildReverseDependencyMap(scanResult.files);
-      const entryPatterns = [/^cli\./, /^index\./, /^main\./, /^server\./];
       
-      // Get unique entry points by relative path
-      const entryPoints: string[] = [];
+      // Get entry points with priority-based selection
+      const entryPoints: { path: string; priority: number }[] = [];
       const seen = new Set<string>();
       for (const f of scanResult.files) {
-        if (entryPatterns.some(p => p.test(f.name))) {
-          const relPath = path.relative(scanResult.rootPath, f.path);
-          if (!seen.has(relPath)) {
-            seen.add(relPath);
-            entryPoints.push(relPath);
-          }
+        const relPath = path.relative(scanResult.rootPath, f.path);
+        if (seen.has(relPath)) continue;
+        
+        let priority = 0;
+        if (f.name === 'cli.ts' || f.name === 'cli.js') {
+          priority = 100; // CLI entry point
+        } else if (f.name === 'index.ts' || f.name === 'index.js') {
+          const depth = relPath.split('/').length;
+          if (depth === 1) priority = 90; // Root index
+          else if (relPath.includes('context')) priority = 70; // Core context
+          else if (relPath.includes('cache') || relPath.includes('modes')) priority = 50; // Supporting
+          else priority = 60;
+        } else if (/^main\./.test(f.name) || /^server\./.test(f.name) || /^app\./.test(f.name)) {
+          priority = 80;
+        }
+        
+        if (priority > 0) {
+          seen.add(relPath);
+          entryPoints.push({ path: relPath, priority });
         }
       }
+      entryPoints.sort((a, b) => b.priority - a.priority);
+      const entryPointPaths = entryPoints.map(e => e.path);
       
-      const rankedFiles = rankFiles(scanResult.files, dependencyMap, reverseDependencyMap, entryPoints);
+      const rankedFiles = rankFiles(scanResult.files, dependencyMap, reverseDependencyMap, entryPointPaths);
       
       // Extract content for all files (for keyword search)
       const contents = new Map<string, import('./context/extractor.js').FileContent>();

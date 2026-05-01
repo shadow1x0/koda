@@ -48,24 +48,44 @@ function detectProjectType(files: FileInfo[]): string {
   return counts[0]?.count > 0 ? counts[0].type : 'Generic';
 }
 
-// Find entry points - return relative paths for uniqueness
+// Find entry points - distinguish application entry from module entries
 function findEntryPoints(files: FileInfo[], rootPath: string): string[] {
-  const entryPatterns = [/^cli\./, /^index\./, /^main\./, /^server\./, /^app\./];
   const seen = new Set<string>();
-  const entryPoints: string[] = [];
+  const entryPoints: { path: string; priority: number }[] = [];
   
   for (const file of files) {
-    if (entryPatterns.some(p => p.test(file.name))) {
-      // Use relative path for unique identification
-      const relativePath = path.relative(rootPath, file.path);
-      if (!seen.has(relativePath)) {
-        seen.add(relativePath);
-        entryPoints.push(relativePath);
+    const relativePath = path.relative(rootPath, file.path);
+    if (seen.has(relativePath)) continue;
+    
+    let priority = 0;
+    
+    // Application entry (highest priority)
+    if (file.name === 'cli.ts' || file.name === 'cli.js') {
+      priority = 100; // CLI entry point
+    } else if (file.name === 'index.ts' || file.name === 'index.js') {
+      // Check depth - shallower = higher priority
+      const depth = relativePath.split('/').length;
+      if (depth === 1) {
+        priority = 90; // Root index (main library entry)
+      } else if (relativePath.includes('context')) {
+        priority = 70; // Core context module
+      } else if (relativePath.includes('cache') || relativePath.includes('modes')) {
+        priority = 50; // Supporting modules
+      } else {
+        priority = 60; // Other modules
       }
+    } else if (/^main\./.test(file.name) || /^server\./.test(file.name) || /^app\./.test(file.name)) {
+      priority = 80; // Server/app entry points
+    }
+    
+    if (priority > 0) {
+      seen.add(relativePath);
+      entryPoints.push({ path: relativePath, priority });
     }
   }
   
-  return entryPoints;
+  // Sort by priority (highest first) and return paths
+  return entryPoints.sort((a, b) => b.priority - a.priority).map(e => e.path);
 }
 
 /**

@@ -13,7 +13,7 @@ npm-debug.log*
 # OS files
 .DS_Store
 Thumbs.db
-
+result.txt
 # IDE
 .vscode/
 .idea/

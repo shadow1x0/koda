@@ -3,12 +3,12 @@
  * Give overview of project - what it is, where to start, how it works
  */
 
+import path from 'node:path';
 import type { FileInfo } from '../types.js';
 import type { FileContent } from '../context/extractor.js';
 import type { RankedFile } from '../context/prioritizer.js';
 import type { ModeConfig } from './types.js';
 import fs from 'node:fs';
-import path from 'node:path';
 
 /**
  * File selector for explain mode:
@@ -153,7 +153,8 @@ function formatExplain(
     const content = contents.get(file.path);
     const exports = content?.exports.slice(0, 2) || [];
     const exportHint = exports.length > 0 ? ` exports: ${exports.map(e => e.split(' ').pop()).join(', ')}` : '';
-    const displayPath = rootPath ? path.relative(rootPath, file.path) : file.path;
+    // Use file.name as fallback if path.relative doesn't work
+    const displayPath = file.name;
     lines.push(`${i + 1}. **${displayPath}**${exportHint}`);
   });
   lines.push('');
