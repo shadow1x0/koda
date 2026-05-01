@@ -114,30 +114,45 @@ export async function buildCompressedContext(
     }
   }
 
-  // Extract content for selected files
+  // Extract content for selected files - STRICT budget enforcement
   const filesWithContent: FileWithContent[] = [];
   for (const ranked of selectedFiles) {
-    const content = extractSmartContent(ranked.file, 50);
+    // Check remaining budget
+    const remainingTokens = availableTokens - currentTokens;
+    if (remainingTokens <= 100) break; // Hard stop, reserve 100 for safety
+    
+    // Extract content with adaptive depth based on remaining budget
+    const maxLines = remainingTokens > 1000 ? 50 : remainingTokens > 500 ? 30 : 15;
+    const content = extractSmartContent(ranked.file, maxLines);
+    
     if (content) {
       const contentTokens = estimateContentTokens(content);
-      currentTokens += contentTokens;
-      filesWithContent.push({
-        ranked,
-        content,
-        contentTokens,
-      });
+      
+      // STRICT: Only include if within budget
+      if (currentTokens + contentTokens <= availableTokens) {
+        currentTokens += contentTokens;
+        filesWithContent.push({
+          ranked,
+          content,
+          contentTokens,
+        });
+      }
+      // If over budget, skip this file's content
     }
   }
 
-  // Build compressed context
+  // Build compressed context - use actual token count
+  const actualTotalTokens = currentTokens + overheadTokens;
+  const finalTokens = Math.min(actualTotalTokens, maxTokens); // Never exceed max
+  
   const context: CompressedContext = {
     projectType: detectProjectType(files),
-    topFiles: selectedFiles,
+    topFiles: selectedFiles.slice(0, filesWithContent.length), // Only files that fit
     filesWithContent,
     entryPoints,
     totalFiles: files.length,
-    includedFiles: selectedFiles.length,
-    estimatedTokens: currentTokens + overheadTokens,
+    includedFiles: filesWithContent.length,
+    estimatedTokens: finalTokens,
   };
 
   return formatAIContext(context, scanResult.rootPath);

@@ -1,0 +1,434 @@
+=== KODA EXPLAIN ===
+🔍 Scanning ....
+📊 Found 24 files
+🎯 Building project overview...
+
+# Project Overview: koda
+
+## What is this?
+CLI tool for project scanning and AI context building
+
+## Where to start
+1. `src/index.ts` - application entry
+2. `src/cache/index.ts` - application entry
+3. `src/modes/index.ts` - application entry
+
+## Architecture
+- **Type:** TypeScript
+- **Entry Points:** src/index.ts, src/cache/index.ts, src/modes/index.ts, src/context/index.ts, src/cli.ts
+- **Key Modules:** /home/kira/Desktop/Koda/src/index.ts, /home/kira/Desktop/Koda/src/cache/index.ts, /home/kira/Desktop/Koda/src/modes/index.ts
+
+## File Guide
+1. **/home/kira/Desktop/Koda/src/index.ts**
+2. **/home/kira/Desktop/Koda/src/cache/index.ts** exports: CacheEntry, CacheData
+3. **/home/kira/Desktop/Koda/src/modes/index.ts**
+4. **/home/kira/Desktop/Koda/src/context/index.ts**
+5. **/home/kira/Desktop/Koda/src/cli.ts**
+6. **/home/kira/Desktop/Koda/README.md**
+7. **/home/kira/Desktop/Koda/package.json**
+
+---
+Copy this context to an AI assistant to get help understanding this codebase.
+
+=== KODA ASK ===
+🔍 Scanning ....
+📊 Found 24 files
+❓ Question: "how does compression work"
+🎯 Finding relevant files...
+
+# Question: "how does compression work"
+
+## Project: TypeScript
+
+## Searching for: how, does, compression, work
+
+## Top 10 Relevant Files
+
+1. **src/modes/ask.ts**
+   Exports: getKeywords, askMode
+
+2. **src/modes/explain.ts**
+   Exports: explainMode
+
+3. **src/context/types.ts**
+   Exports: FileImportance, FileInsight, DependencyEdge
+
+4. **src/context/index.ts**
+
+5. **src/cli.ts**
+
+6. **README.md**
+
+7. **package.json**
+
+8. **tsconfig.json**
+
+9. **src/formatter.ts**
+   Exports: formatOutput
+
+10. **src/index.ts**
+
+---
+## Analysis
+**How these files work together:**
+1. Entry/Handler: src/modes/ask.ts
+2. Core Logic: src/modes/explain.ts
+3. Supporting: src/context/types.ts
+
+## Answer
+The question "how does compression work" involves the following mechanism:
+
+**Primary flow:**
+1. **src/modes/ask.ts** → defines `getKeywords`
+2. **src/modes/explain.ts** → defines `explainMode`
+3. **src/context/types.ts** → defines `FileImportance`
+
+**To understand the full implementation:** Review the code in the files listed above, particularly the exported functions.
+
+**Note:** This is a code-assisted answer. For complete understanding, review the full implementation in the files above.
+
+=== KODA CONTEXT ===
+🔍 Scanning ....
+📊 Found 24 files
+🎯 Compressing to ~4000 tokens...
+
+# TypeScript Project Context
+
+> Compressed from 24 files to 14 critical files (~3903 tokens)
+
+## Entry Points
+- src/index.ts
+- src/cache/index.ts
+- src/modes/index.ts
+- src/context/index.ts
+- src/cli.ts
+
+## Critical Files (ranked by importance)
+
+### 1. src/cache/index.ts
+**Why:** entry point
+
+**Exports:**
+```typescript
+export interface CacheEntry
+export interface CacheData
+export function isCacheValid
+export function buildCacheEntry
+export function cacheEntryToFileInfo
+// ... and 2 more exports
+```
+
+**Key Code:**
+```typescript
+/**
+ * Project Cache System
+ * Caches file metadata, dependencies, and content for fast subsequent runs
+ */
+
+import fs from 'node:fs';
+import path from 'node:path';
+import type { FileInfo } from '../types.js';
+import type { ImportInfo } from '../context/types.js';
+
+const CACHE_VERSION = '1.0';
+const CACHE_DIR = '.koda';
+const CACHE_FILE = 'cache.json';
+```
+
+### 2. src/modes/index.ts
+**Why:** entry point
+
+**Key Code:**
+```typescript
+/**
+ * Modes System - Index
+ * Exports all modes and utilities
+ */
+
+export { explainMode } from './explain.js';
+export { askMode } from './ask.js';
+export type { Mode, ModeConfig } from './types.js';
+
+```
+
+### 3. src/context/index.ts
+**Why:** entry point
+
+**Key Code:**
+```typescript
+/**
+ * Smart Context Compression Engine
+ * Ranks, filters, and compresses to fit token limit
+ */
+
+import path from 'node:path';
+import type { ScanResult, FileInfo } from '../types.js';
+import { buildDependencyMap, buildReverseDependencyMap } from './detector.js';
+import { rankFiles, RankedFile } from './prioritizer.js';
+import { formatAIContext, CompressedContext, FileWithContent } from './formatter.js';
+import { extractSmartContent, estimateContentTokens } from './extractor.js';
+
+// Simple token estimation (4 chars ≈ 1 token for code)
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+```
+
+### 4. src/index.ts
+**Why:** entry point
+
+**Key Code:**
+```typescript
+/**
+ * Koda scanner - Main exports
+ */
+
+export { scanProject } from './scanner.js';
+export type { FileInfo, TreeNode, ScanResult } from './types.js';
+
+```
+
+### 5. src/cli.ts
+**Why:** entry point
+
+**Key Code:**
+```typescript
+#!/usr/bin/env node
+
+/**
+ * Koda CLI - Smart Context Compression for AI
+ * Three modes: explain, ask, context
+ */
+```
+
+### 6. src/types.ts
+**Why:** imported by many files
+
+**Exports:**
+```typescript
+export interface FileInfo
+export interface TreeNode
+export interface ScanResult
+```
+
+**Key Code:**
+```typescript
+/**
+ * Types for the Koda scanner module
+ */
+
+export interface FileInfo {
+  path: string;
+  name: string;
+  size: number;
+  extension: string;
+  type: 'source' | 'config' | 'other';
+}
+```
+
+### 7. src/context/extractor.ts
+**Why:** imported by many files
+
+**Exports:**
+```typescript
+export interface FileContent
+export function extractSmartContent
+export function estimateContentTokens
+```
+
+**Key Code:**
+```typescript
+/**
+ * Smart Content Extractor
+ * Extracts headers, exports, functions, classes from source files
+ */
+
+import fs from 'node:fs';
+import type { FileInfo } from '../types.js';
+
+export interface FileContent {
+  path: string;
+  header: string;
+  exports: string[];
+  imports: string[];
+  functions: string[];
+  classes: string[];
+  configValues?: Record<string, string>;
+}
+```
+
+### 8. src/context/prioritizer.ts
+**Why:** imported by many files
+
+**Exports:**
+```typescript
+export interface RankedFile
+export function rankFiles
+```
+
+**Key Code:**
+```typescript
+/**
+ * Simple Ranking Engine
+ * Rules-based: imports count, execution path, depth
+ */
+
+import type { FileInfo } from '../types.js';
+
+// Simple scoring - higher = more important
+export interface RankedFile {
+  file: FileInfo;
+  score: number;
+  reasons: string[];
+}
+```
+
+### 9. src/context/types.ts
+**Why:** imported by several files
+
+**Exports:**
+```typescript
+export type FileImportance
+export interface FileInsight
+export interface DependencyEdge
+export interface DependencyGraph
+export interface CategorizedFiles
+// ... and 6 more exports
+```
+
+**Key Code:**
+```typescript
+/**
+ * Context Engine Types v1.1
+ * Evidence-based project reasoning system
+ */
+
+import type { FileInfo, ScanResult } from '../types.js';
+
+export type FileImportance = 'core' | 'support' | 'config';
+
+/**
+ * File insight with evidence-based reasoning
+ */
+export interface FileInsight {
+  file: string;  // basename only, disambiguated if needed
+  path: string;  // full path for reference
+  role: string;  // semantic role in system
+  description: string;  // what it actually does
+  evidence: string[];  // WHY this conclusion was made
+  importance: FileImportance;
+  priorityScore: number;  // 0-100, deterministic
+}
+```
+
+### 10. src/modes/types.ts
+**Why:** imported by several files
+
+**Exports:**
+```typescript
+export type Mode
+export interface ModeConfig
+```
+
+**Key Code:**
+```typescript
+/**
+ * Mode System Types
+ * Different modes for different use cases
+ */
+
+import type { FileInfo } from '../types.js';
+import type { FileContent } from '../context/extractor.js';
+import type { RankedFile } from '../context/prioritizer.js';
+
+export type Mode = 'explain' | 'ask' | 'context';
+
+export interface ModeConfig {
+  name: Mode;
+  description: string;
+  maxFiles: number;
+  includeContent: boolean;
+  fileSelector: (files: FileInfo[], rankedFiles: RankedFile[], query?: string) => FileInfo[];
+  formatter: (files: FileInfo[], contents: Map<string, FileContent>, projectType: string, entryPoints: string[], rootPath?: string) => string;
+}
+```
+
+### 11. README.md
+**Why:** important file
+
+**Key Code:**
+```typescript
+# Koda
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
+```
+
+### 12. package.json
+**Why:** important file
+
+**Key Code:**
+```typescript
+{
+  "name": "koda",
+  "version": "0.1.0",
+  "description": "CLI tool for project scanning and AI context building",
+  "main": "dist/index.js",
+  "bin": {
+    "koda": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/cli.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+```
+
+### 13. tsconfig.json
+**Why:** important file
+
+**Key Code:**
+```typescript
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+```
+
+### 14. src/scanner.ts
+**Why:** important file
+
+**Key Code:**
+```typescript
+/**
+ * Core scanner module for Koda CLI
+ * Handles project directory scanning and file filtering
+ */
+
+import fs from 'node:fs';
+import path from 'node:path';
+import glob from 'fast-glob';
+import type { FileInfo, TreeNode, ScanResult } from './types.js';
+import { loadCache, saveCache, invalidateCache, createEmptyCache, cacheEntryToFileInfo, type CacheData, type CacheEntry } from './cache/index.js';
+
+// Patterns to ignore (junk/noise files)
+const IGNORE_PATTERNS = [
+  'node_modules/**',
+  'dist/**',
+```
+
+---
+Use this context to understand the codebase structure before answering questions.

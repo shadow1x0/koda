@@ -210,7 +210,81 @@ program
       });
       
       lines.push('---');
-      lines.push('Answer the question using the file context above.');
+      
+      // Generate synthesized answer based on found files
+      lines.push('## Analysis');
+      
+      // Find key functions/classes that might answer the question
+      const keyFunctions: string[] = [];
+      selectedFiles.forEach(file => {
+        const content = contents.get(file.path);
+        if (content?.exports) {
+          const relevantExports = content.exports.filter(e => 
+            keywords.some(k => e.toLowerCase().includes(k.toLowerCase()))
+          );
+          relevantExports.forEach(exp => {
+            const match = exp.match(/\b(?:function|class|const|let|var)\s+(\w+)/);
+            if (match) keyFunctions.push(`${match[1]} (${path.relative(scanResult.rootPath, file.path)})`);
+          });
+        }
+      });
+      
+      if (keyFunctions.length > 0) {
+        lines.push(`**Key components related to your question:**`);
+        keyFunctions.slice(0, 5).forEach(fn => lines.push(`- ${fn}`));
+        lines.push('');
+      }
+      
+      // Connection analysis
+      if (selectedFiles.length > 1) {
+        lines.push('**How these files work together:**');
+        lines.push(`1. Entry/Handler: ${path.relative(scanResult.rootPath, selectedFiles[0].path)}`);
+        if (selectedFiles.length > 2) {
+          lines.push(`2. Core Logic: ${path.relative(scanResult.rootPath, selectedFiles[1].path)}`);
+          lines.push(`3. Supporting: ${path.relative(scanResult.rootPath, selectedFiles[2].path)}`);
+        }
+        lines.push('');
+      }
+      
+      lines.push('## Answer');
+      
+      // Simple rule-based answer generation
+      const isHowQuestion = keywords.some(k => ['how', 'does', 'work', 'function'].includes(k.toLowerCase()));
+      const isWhatQuestion = keywords.some(k => ['what', 'is', 'are'].includes(k.toLowerCase()));
+      
+      if (isHowQuestion) {
+        lines.push(`The question "${question}" involves the following mechanism:`);
+        lines.push('');
+        lines.push(`**Primary flow:**`);
+        selectedFiles.slice(0, 3).forEach((file, i) => {
+          const relPath = path.relative(scanResult.rootPath, file.path);
+          const content = contents.get(file.path);
+          const firstExport = content?.exports[0];
+          lines.push(`${i + 1}. **${relPath}** ${firstExport ? `→ defines \`${firstExport.split(' ').pop()}\`` : ''}`);
+        });
+        lines.push('');
+        lines.push(`**To understand the full implementation:** Review the code in the files listed above, particularly the exported functions.`);
+      } else if (isWhatQuestion) {
+        lines.push(`Based on the codebase analysis:`);
+        lines.push('');
+        selectedFiles.slice(0, 3).forEach(file => {
+          const content = contents.get(file.path);
+          if (content?.header) {
+            const desc = content.header.split('\n').find(l => l.trim() && !l.startsWith('//') && !l.startsWith('/*'));
+            if (desc) lines.push(`- ${desc.trim().slice(0, 100)}`);
+          }
+        });
+      } else {
+        lines.push(`Information related to "${question}" was found in ${selectedFiles.length} files.`);
+        lines.push('');
+        lines.push(`**Most relevant:** ${path.relative(scanResult.rootPath, selectedFiles[0].path)}`);
+        if (selectedFiles[0].size > 0) {
+          lines.push(`- File size: ${(selectedFiles[0].size / 1024).toFixed(1)}KB`);
+        }
+      }
+      
+      lines.push('');
+      lines.push('**Note:** This is a code-assisted answer. For complete understanding, review the full implementation in the files above.');
       
       console.log(lines.join('\n'));
     } catch (error) {
