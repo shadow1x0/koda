@@ -143,36 +143,14 @@ program
         }
       }
       
-      // Keyword-based selection
+      // Extract keywords for answer generation
       const keywords = question.toLowerCase()
         .replace(/[^\w\s]/g, ' ')
         .split(/\s+/)
         .filter(w => w.length > 2);
       
-      // Score files by keyword relevance
-      const scored = scanResult.files.map(file => {
-        let score = 0;
-        const content = contents.get(file.path);
-        
-        for (const kw of keywords) {
-          if (file.name.toLowerCase().includes(kw)) score += 50;
-          if (file.name.replace(/\.[^/.]+$/, '').toLowerCase().includes(kw)) score += 40;
-          
-          if (content) {
-            for (const exp of content.exports) {
-              if (exp.toLowerCase().includes(kw)) score += 30;
-            }
-            for (const func of content.functions) {
-              if (func.toLowerCase().includes(kw)) score += 20;
-            }
-            if (content.header.toLowerCase().includes(kw)) score += 10;
-          }
-        }
-        
-        return { file, score };
-      }).sort((a, b) => b.score - a.score);
-      
-      const selectedFiles = scored.slice(0, maxFiles).map(x => x.file);
+      // Use askMode for topic-aware file selection
+      const selectedFiles = askMode.fileSelector(scanResult.files, rankedFiles, question).slice(0, maxFiles);
       
       // Detect project type
       const hasPackageJson = scanResult.files.some(f => f.name === 'package.json');
@@ -183,13 +161,16 @@ program
       if (hasPackageJson && tsFiles > 0 && tsFiles >= jsFiles) projectType = 'TypeScript';
       else if (hasPackageJson && jsFiles > 0) projectType = 'JavaScript/Node.js';
       
+      // Get topic from question for display
+      const topicMatch = question.toLowerCase().match(/(?:compression|caching|scanning|rank|dependency|extract|format|mode|ask|explain|cli|test)/);
+      const topic = topicMatch ? topicMatch[0] : 'general';
+      
       // Format output
       const lines: string[] = [];
       lines.push(`# Question: "${question}"`);
       lines.push('');
       lines.push(`## Project: ${projectType}`);
-      lines.push('');
-      lines.push(`## Searching for: ${[...new Set(keywords)].slice(0, 5).join(', ')}`);
+      lines.push(`**Topic detected:** ${topic}`);
       lines.push('');
       lines.push(`## Top ${selectedFiles.length} Relevant Files`);
       lines.push('');

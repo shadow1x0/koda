@@ -9,9 +9,39 @@ import type { RankedFile } from '../context/prioritizer.js';
 import type { ModeConfig } from './types.js';
 
 /**
- * Extract keywords from a question
+ * Intent classification for better query understanding
  */
-function extractKeywords(query: string): string[] {
+type IntentType = 'mechanism' | 'feature' | 'bug' | 'architecture' | 'usage' | 'general';
+
+interface QueryAnalysis {
+  intent: IntentType;
+  topic: string;      // Main subject (e.g., "compression")
+  action: string;     // What user wants (e.g., "how", "what", "why")
+  keywords: string[]; // All relevant terms
+}
+
+/**
+ * Map topics to likely directories/files
+ */
+const TOPIC_DIRECTORY_MAP: Record<string, string[]> = {
+  'compression': ['src/context', 'src/context/index', 'src/context/prioritizer', 'src/context/detector'],
+  'rank': ['src/context/prioritizer', 'src/context/index'],
+  'dependency': ['src/context/detector', 'src/context/index'],
+  'extract': ['src/context/extractor', 'src/context/index'],
+  'format': ['src/context/formatter', 'src/formatter'],
+  'cache': ['src/cache', 'src/scanner'],
+  'scan': ['src/scanner', 'src/index'],
+  'mode': ['src/modes', 'src/cli'],
+  'ask': ['src/modes/ask', 'src/modes'],
+  'explain': ['src/modes/explain', 'src/modes'],
+  'cli': ['src/cli'],
+  'test': ['tests'],
+};
+
+/**
+ * Extract keywords with intent analysis
+ */
+function analyzeQuery(query: string): QueryAnalysis {
   // Remove common stop words and extract meaningful terms
   const stopWords = new Set(['the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'shall', 'can', 'need', 'dare', 'ought', 'used', 'to', 'of', 'in', 'for', 'on', 'with', 'at', 'by', 'from', 'as', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'between', 'under', 'again', 'further', 'then', 'once', 'here', 'there', 'when', 'where', 'why', 'how', 'all', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 'just', 'and', 'but', 'if', 'or', 'because', 'until', 'while', 'this', 'that', 'these', 'those', 'i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'you', 'your', 'yours', 'yourself', 'yourselves', 'he', 'him', 'his', 'himself', 'she', 'her', 'hers', 'herself', 'it', 'its', 'itself', 'they', 'them', 'their', 'theirs', 'themselves', 'what', 'which', 'who', 'whom', 'whose', 'am', 'it', 's', 'doesn', 'don', 'didn', 'wasn', 'weren', 'haven', 'hasn', 'hadn', 'won', 'wouldn', 'couldn', 'shouldn']);
   
@@ -20,20 +50,56 @@ function extractKeywords(query: string): string[] {
     .split(/\s+/)
     .filter(w => w.length > 2 && !stopWords.has(w));
   
-  // Deduplicate and limit
-  return [...new Set(words)].slice(0, 5);
+  // Detect intent from question words
+  let intent: IntentType = 'general';
+  const queryLower = query.toLowerCase();
+  if (queryLower.includes('how') || queryLower.includes('work')) {
+    intent = 'mechanism';
+  } else if (queryLower.includes('what')) {
+    intent = 'feature';
+  } else if (queryLower.includes('why') || queryLower.includes('bug') || queryLower.includes('error')) {
+    intent = 'bug';
+  } else if (queryLower.includes('structure') || queryLower.includes('architecture') || queryLower.includes('design')) {
+    intent = 'architecture';
+  }
+  
+  // Find the main topic (non-question word, non-generic)
+  const questionWords = ['how', 'what', 'why', 'when', 'where', 'who', 'which', 'does', 'work', 'explain'];
+  const candidates = words.filter(w => !questionWords.includes(w));
+  const topic = candidates[0] || words[0] || 'general';
+  
+  // Action word
+  const action = words.find(w => questionWords.includes(w)) || 'find';
+  
+  return {
+    intent,
+    topic,
+    action,
+    keywords: [...new Set(words)],
+  };
 }
 
 /**
- * Score files by keyword relevance
+ * Legacy function for compatibility
+ */
+function extractKeywords(query: string): string[] {
+  return analyzeQuery(query).keywords;
+}
+
+/**
+ * Score files by keyword relevance with topic-aware directory matching
  */
 function scoreFilesByKeywords(
   files: FileInfo[], 
   rankedFiles: RankedFile[], 
   contents: Map<string, FileContent>,
-  keywords: string[]
+  keywords: string[],
+  topic?: string
 ): Map<string, number> {
   const scores = new Map<string, number>();
+  
+  // Get topic-relevant directories
+  const relevantDirs = topic ? TOPIC_DIRECTORY_MAP[topic.toLowerCase()] || [] : [];
   
   // Create path to ranked score map for base importance
   const rankedScores = new Map<string, number>();
@@ -44,51 +110,61 @@ function scoreFilesByKeywords(
   for (const file of files) {
     let score = rankedScores.get(file.path) || 0;
     const content = contents.get(file.path);
+    const filePathLower = file.path.toLowerCase();
+    const fileNameLower = file.name.toLowerCase();
+    
+    // Topic directory boost - HUGE bonus for files in relevant directories
+    for (const dir of relevantDirs) {
+      if (filePathLower.includes(dir.toLowerCase())) {
+        score += 100; // Major boost for topic-relevant directories
+        break;
+      }
+    }
     
     for (const kw of keywords) {
+      const kwLower = kw.toLowerCase();
+      
       // Filename match (high priority)
-      if (file.name.toLowerCase().includes(kw)) {
+      if (fileNameLower.includes(kwLower)) {
         score += 50;
       }
       
       // Extension match (e.g., "auth" in auth.ts)
-      const baseName = file.name.replace(/\.[^/.]+$/, '').toLowerCase();
-      if (baseName.includes(kw)) {
+      const baseName = fileNameLower.replace(/\.[^/.]+$/, '');
+      if (baseName.includes(kwLower)) {
         score += 40;
       }
       
       if (content) {
-        // Export names match
+        // Export names match (very high priority for mechanism questions)
         for (const exp of content.exports) {
-          if (exp.toLowerCase().includes(kw)) {
-            score += 30;
+          if (exp.toLowerCase().includes(kwLower)) {
+            score += 35;
           }
         }
         
         // Function names match
         for (const func of content.functions) {
-          if (func.toLowerCase().includes(kw)) {
+          if (func.toLowerCase().includes(kwLower)) {
             score += 20;
           }
         }
         
         // Class names match
         for (const cls of content.classes) {
-          if (cls.toLowerCase().includes(kw)) {
+          if (cls.toLowerCase().includes(kwLower)) {
             score += 25;
           }
         }
         
-        // Header content match
-        if (content.header.toLowerCase().includes(kw)) {
-          score += 10;
+        // Header content match (high weight for understanding)
+        if (content.header.toLowerCase().includes(kwLower)) {
+          score += 15;
         }
       }
     }
     
-    if (score > 0) {
-      scores.set(file.path, score);
-    }
+    scores.set(file.path, score);
   }
   
   return scores;
@@ -104,16 +180,17 @@ function selectAskFiles(files: FileInfo[], rankedFiles: RankedFile[], query?: st
     return rankedFiles.slice(0, 5).map(r => r.file);
   }
   
-  const keywords = extractKeywords(query);
-  if (keywords.length === 0) {
+  // Analyze query with intent and topic
+  const analysis = analyzeQuery(query);
+  if (analysis.keywords.length === 0) {
     return rankedFiles.slice(0, 5).map(r => r.file);
   }
   
-  // We need contents for scoring - for now, pre-extract for scoring
-  // In real implementation, this would be passed in
+  // We need contents for scoring - pre-extract for topic matching
   const tempContents = new Map<string, FileContent>();
   
-  const scores = scoreFilesByKeywords(files, rankedFiles, tempContents, keywords);
+  // Score with topic-aware matching
+  const scores = scoreFilesByKeywords(files, rankedFiles, tempContents, analysis.keywords, analysis.topic);
   
   // Sort by score and select top N
   const sorted = files

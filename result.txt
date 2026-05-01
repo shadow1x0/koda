@@ -39,49 +39,52 @@ Copy this context to an AI assistant to get help understanding this codebase.
 # Question: "how does compression work"
 
 ## Project: TypeScript
-
-## Searching for: how, does, compression, work
+**Topic detected:** compression
 
 ## Top 10 Relevant Files
 
-1. **src/modes/ask.ts**
-   Exports: getKeywords, askMode
+1. **src/context/index.ts**
 
-2. **src/modes/explain.ts**
-   Exports: explainMode
+2. **src/context/extractor.ts**
+   Exports: FileContent, extractSmartContent, estimateContentTokens
 
-3. **src/context/types.ts**
+3. **src/context/prioritizer.ts**
+   Exports: RankedFile, rankFiles
+
+4. **src/context/types.ts**
    Exports: FileImportance, FileInsight, DependencyEdge
 
-4. **src/context/index.ts**
+5. **src/context/detector.ts**
+   Exports: extractImports, buildDependencyEdges, buildDependencyMap
 
-5. **src/cli.ts**
+6. **src/context/formatter.ts**
+   Exports: FileWithContent, CompressedContext, formatAIContext
 
-6. **README.md**
+7. **src/context/intelligence.ts**
+   Exports: FileAnalysis, analyzeFile, generateSemanticDescription
 
-7. **package.json**
+8. **src/context/summary.ts**
+   Exports: generateProjectSummary
 
-8. **tsconfig.json**
+9. **src/cache/index.ts**
+   Exports: CacheEntry, CacheData, isCacheValid
 
-9. **src/formatter.ts**
-   Exports: formatOutput
-
-10. **src/index.ts**
+10. **src/modes/index.ts**
 
 ---
 ## Analysis
 **How these files work together:**
-1. Entry/Handler: src/modes/ask.ts
-2. Core Logic: src/modes/explain.ts
-3. Supporting: src/context/types.ts
+1. Entry/Handler: src/context/index.ts
+2. Core Logic: src/context/extractor.ts
+3. Supporting: src/context/prioritizer.ts
 
 ## Answer
 The question "how does compression work" involves the following mechanism:
 
 **Primary flow:**
-1. **src/modes/ask.ts** → defines `getKeywords`
-2. **src/modes/explain.ts** → defines `explainMode`
-3. **src/context/types.ts** → defines `FileImportance`
+1. **src/context/index.ts** 
+2. **src/context/extractor.ts** → defines `FileContent`
+3. **src/context/prioritizer.ts** → defines `RankedFile`
 
 **To understand the full implementation:** Review the code in the files listed above, particularly the exported functions.
 
