@@ -15,5 +15,5 @@ export interface ModeConfig {
   maxFiles: number;
   includeContent: boolean;
   fileSelector: (files: FileInfo[], rankedFiles: RankedFile[], query?: string) => FileInfo[];
-  formatter: (files: FileInfo[], contents: Map<string, FileContent>, projectType: string, entryPoints: string[]) => string;
+  formatter: (files: FileInfo[], contents: Map<string, FileContent>, projectType: string, entryPoints: string[], rootPath?: string) => string;
 }

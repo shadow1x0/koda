@@ -3,6 +3,7 @@
  * Ranks, filters, and compresses to fit token limit
  */
 
+import path from 'node:path';
 import type { ScanResult, FileInfo } from '../types.js';
 import { buildDependencyMap, buildReverseDependencyMap } from './detector.js';
 import { rankFiles, RankedFile } from './prioritizer.js';
@@ -47,12 +48,24 @@ function detectProjectType(files: FileInfo[]): string {
   return counts[0]?.count > 0 ? counts[0].type : 'Generic';
 }
 
-// Find entry points
-function findEntryPoints(files: FileInfo[]): string[] {
-  const entryPatterns = [/^cli\./, /^index\./, /^main\./, /^server\./];
-  return files
-    .filter(f => entryPatterns.some(p => p.test(f.name)))
-    .map(f => f.name);
+// Find entry points - return relative paths for uniqueness
+function findEntryPoints(files: FileInfo[], rootPath: string): string[] {
+  const entryPatterns = [/^cli\./, /^index\./, /^main\./, /^server\./, /^app\./];
+  const seen = new Set<string>();
+  const entryPoints: string[] = [];
+  
+  for (const file of files) {
+    if (entryPatterns.some(p => p.test(file.name))) {
+      // Use relative path for unique identification
+      const relativePath = path.relative(rootPath, file.path);
+      if (!seen.has(relativePath)) {
+        seen.add(relativePath);
+        entryPoints.push(relativePath);
+      }
+    }
+  }
+  
+  return entryPoints;
 }
 
 /**
@@ -75,8 +88,8 @@ export async function buildCompressedContext(
   const dependencyMap = buildDependencyMap(files);
   const reverseDependencyMap = buildReverseDependencyMap(files);
 
-  // Find entry points
-  const entryPoints = findEntryPoints(files);
+  // Find entry points (unique by relative path)
+  const entryPoints = findEntryPoints(files, scanResult.rootPath);
 
   // Rank files by importance
   const rankedFiles = rankFiles(files, dependencyMap, reverseDependencyMap, entryPoints);
@@ -127,5 +140,5 @@ export async function buildCompressedContext(
     estimatedTokens: currentTokens + overheadTokens,
   };
 
-  return formatAIContext(context);
+  return formatAIContext(context, scanResult.rootPath);
 }

@@ -78,7 +78,8 @@ function formatExplain(
   files: FileInfo[], 
   contents: Map<string, FileContent>, 
   projectType: string,
-  entryPoints: string[]
+  entryPoints: string[],
+  rootPath?: string
 ): string {
   const lines: string[] = [];
   
@@ -118,7 +119,9 @@ function formatExplain(
   const entries = entryPoints.slice(0, 3);
   if (entries.length > 0) {
     entries.forEach((ep, i) => {
-      const content = contents.get(files.find(f => f.name === ep)?.path || '');
+      // Find file by matching relative path
+      const file = files.find(f => rootPath ? path.relative(rootPath, f.path) === ep : f.path === ep);
+      const content = file ? contents.get(file.path) : undefined;
       const firstLine = content?.header.split('\n').find(l => l.trim() && !l.startsWith('//') && !l.startsWith('/*'));
       lines.push(`${i + 1}. \`${ep}\`${firstLine ? ` - ${firstLine.trim().slice(0, 60)}` : ' - application entry'}`);
     });
@@ -132,10 +135,11 @@ function formatExplain(
   lines.push(`- **Type:** ${projectType}`);
   lines.push(`- **Entry Points:** ${entryPoints.join(', ') || 'None detected'}`);
   
-  // Key modules from selected files
+  // Key modules from selected files - use relative paths
   const sourceFiles = files.filter(f => f.type === 'source').slice(0, 3);
   if (sourceFiles.length > 0) {
-    lines.push(`- **Key Modules:** ${sourceFiles.map(f => f.name).join(', ')}`);
+    const moduleNames = sourceFiles.map(f => rootPath ? path.relative(rootPath, f.path) : f.path);
+    lines.push(`- **Key Modules:** ${moduleNames.join(', ')}`);
   }
   
   // External deps count
@@ -143,13 +147,14 @@ function formatExplain(
   // Note: We'd need to parse package.json for real count, skip for now
   lines.push('');
   
-  // File Guide
+  // File Guide - use relative paths for unique identification
   lines.push('## File Guide');
   files.forEach((file, i) => {
     const content = contents.get(file.path);
     const exports = content?.exports.slice(0, 2) || [];
     const exportHint = exports.length > 0 ? ` exports: ${exports.map(e => e.split(' ').pop()).join(', ')}` : '';
-    lines.push(`${i + 1}. **${file.name}**${exportHint}`);
+    const displayPath = rootPath ? path.relative(rootPath, file.path) : file.path;
+    lines.push(`${i + 1}. **${displayPath}**${exportHint}`);
   });
   lines.push('');
   

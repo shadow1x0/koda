@@ -1,8 +1,9 @@
 /**
  * AI Context Formatter
- * One format: AI-ready markdown
+ * One format: AI-ready context
  */
 
+import path from 'node:path';
 import type { RankedFile } from './prioritizer.js';
 import type { FileContent } from './extractor.js';
 
@@ -25,7 +26,7 @@ export interface CompressedContext {
 /**
  * Format compressed context for AI
  */
-export function formatAIContext(context: CompressedContext): string {
+export function formatAIContext(context: CompressedContext, rootPath?: string): string {
   const lines: string[] = [];
 
   lines.push(`# ${context.projectType} Project Context`);
@@ -48,8 +49,10 @@ export function formatAIContext(context: CompressedContext): string {
     const { ranked, content } = fwc;
     const file = ranked.file;
     
-    lines.push(`### ${index + 1}. ${file.name}`);
-    lines.push(`**Path:** \`${file.path}\``);
+    // Use relative path for unique identification
+    const displayPath = rootPath ? path.relative(rootPath, file.path) : file.path;
+    
+    lines.push(`### ${index + 1}. ${displayPath}`);
     lines.push(`**Why:** ${ranked.reasons.join(', ') || 'important file'}`);
     lines.push('');
     

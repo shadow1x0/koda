@@ -40,9 +40,19 @@ program
       const dependencyMap = buildDependencyMap(scanResult.files);
       const reverseDependencyMap = buildReverseDependencyMap(scanResult.files);
       const entryPatterns = [/^cli\./, /^index\./, /^main\./, /^server\./];
-      const entryPoints = scanResult.files
-        .filter(f => entryPatterns.some(p => p.test(f.name)))
-        .map(f => f.name);
+      
+      // Get unique entry points by relative path
+      const entryPoints: string[] = [];
+      const seen = new Set<string>();
+      for (const f of scanResult.files) {
+        if (entryPatterns.some(p => p.test(f.name))) {
+          const relPath = path.relative(scanResult.rootPath, f.path);
+          if (!seen.has(relPath)) {
+            seen.add(relPath);
+            entryPoints.push(relPath);
+          }
+        }
+      }
       
       // Rank files
       const rankedFiles = rankFiles(scanResult.files, dependencyMap, reverseDependencyMap, entryPoints);
@@ -78,7 +88,7 @@ program
       else if (hasGoMod && goFiles > 0) projectType = 'Go';
       else if (hasPyProject && pyFiles > 0) projectType = 'Python';
       
-      const output = explainMode.formatter(selectedFiles, contents, projectType, entryPoints);
+      const output = explainMode.formatter(selectedFiles, contents, projectType, entryPoints, scanResult.rootPath);
       console.log(output);
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : String(error));
@@ -108,9 +118,19 @@ program
       const dependencyMap = buildDependencyMap(scanResult.files);
       const reverseDependencyMap = buildReverseDependencyMap(scanResult.files);
       const entryPatterns = [/^cli\./, /^index\./, /^main\./, /^server\./];
-      const entryPoints = scanResult.files
-        .filter(f => entryPatterns.some(p => p.test(f.name)))
-        .map(f => f.name);
+      
+      // Get unique entry points by relative path
+      const entryPoints: string[] = [];
+      const seen = new Set<string>();
+      for (const f of scanResult.files) {
+        if (entryPatterns.some(p => p.test(f.name))) {
+          const relPath = path.relative(scanResult.rootPath, f.path);
+          if (!seen.has(relPath)) {
+            seen.add(relPath);
+            entryPoints.push(relPath);
+          }
+        }
+      }
       
       const rankedFiles = rankFiles(scanResult.files, dependencyMap, reverseDependencyMap, entryPoints);
       
@@ -176,7 +196,8 @@ program
       
       selectedFiles.forEach((file, i) => {
         const content = contents.get(file.path);
-        lines.push(`${i + 1}. **${file.name}** - \`${file.path}\``);
+        const relPath = path.relative(scanResult.rootPath, file.path);
+        lines.push(`${i + 1}. **${relPath}**`);
         
         if (content?.exports.length) {
           const exports = content.exports.slice(0, 3).map(e => {
